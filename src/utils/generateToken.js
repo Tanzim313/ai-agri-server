@@ -1,15 +1,23 @@
 const jwt = require("jsonwebtoken");
 
-const generateToken = (id) => {
+const generateToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is required");
+  }
+
+  const id = user._id ? user._id.toString() : user.toString();
+  const role = user.role || "farmer";
 
   return jwt.sign(
-    { id },
+    {
+      id,
+      role
+    },
     process.env.JWT_SECRET,
     {
-      expiresIn: "30d"
+      expiresIn: process.env.JWT_EXPIRES_IN || "30d"
     }
   );
-
 };
 
 module.exports = generateToken;
