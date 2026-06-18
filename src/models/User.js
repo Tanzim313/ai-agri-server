@@ -1,6 +1,19 @@
 const { ObjectId } = require("mongodb");
 const { getDB } = require("../config/db");
 
+/*
+  users collection schema example for MongoDB Atlas:
+  {
+    _id: ObjectId("64bfcf..."),
+    name: "John Doe",
+    email: "john@example.com",
+    password: "$2a$12$...",
+    role: "farmer",
+    profileImage: null,
+    createdAt: ISODate("2026-06-18T12:00:00Z")
+  }
+*/
+
 const USER_ROLES = Object.freeze({
   FARMER: "farmer",
   ADMIN: "admin"

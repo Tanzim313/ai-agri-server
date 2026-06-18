@@ -1,6 +1,21 @@
 const { ObjectId } = require("mongodb");
 const { getDB } = require("../config/db");
 
+/*
+  products collection schema example:
+  {
+    _id: ObjectId("64bfec34..."),
+    name: "Organic Fertilizer",
+    description: "Balanced NPK fertilizer for vegetables.",
+    price: 350.0,
+    category: "fertilizer",
+    stock: 50,
+    imageUrl: "https://res.cloudinary.com/.../product.jpg",
+    createdAt: ISODate("2026-06-18T12:30:00Z"),
+    updatedAt: ISODate("2026-06-18T12:30:00Z")
+  }
+*/
+
 const collection = () => getDB().collection("products");
 
 const toObjectId = (id) => {
