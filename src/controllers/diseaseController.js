@@ -1,7 +1,6 @@
 const DiseaseRecord = require("../models/DiseaseRecord");
-const predictDisease = require("../ai/disease/diseasePredictor");
 const cloudinary = require("../config/cloudinary");
-const { generateTreatment } = require("../services/diseaseService");
+const { generateTreatment, predictDiseaseFromFlask } = require("../services/diseaseService");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
 
 const buildOwnerFilter = (req, reportId) => {
@@ -56,7 +55,8 @@ const predict = async (req, res, next) => {
       return errorResponse(res, 500, "Cloudinary did not return an image URL");
     }
 
-    const predictionResult = await predictDisease(imageUrl);
+    // Assuming you have a function to call your AI model
+    const predictionResult = await predictDiseaseFromFlask(req.file);
     const treatment = generateTreatment(predictionResult.prediction);
     const now = new Date();
 

@@ -1,3 +1,7 @@
+const axios = require('axios');
+const fs = require('fs');
+const FormData = require('form-data');
+
 const treatments = {
   Apple___Apple_scab: "Remove infected leaves and fallen debris. Apply a labeled fungicide such as captan or sulfur during humid periods and improve air circulation.",
   Apple___Black_rot: "Prune infected branches, remove mummified fruit, and destroy diseased debris. Apply a registered fungicide during the growing season.",
@@ -51,8 +55,40 @@ const generateTreatment = (prediction) => {
   return treatments[prediction] || "Consult a local agricultural extension officer for field-specific diagnosis and treatment.";
 };
 
+
+// flask-ai-server e image file diye prediction ana...
+const predictDiseaseFromFlask = async (file) => {
+  try {
+    const flaskUrl = process.env.FLASK_AI_URL || 'http://localhost:8000';
+    const formData = new FormData();
+
+    
+    //multer dia file asbe , tarpor fromdata te add kore flask e pathano
+    formData.append('image', file.buffer, { filename: file.originalname });
+
+    const response = await axios.post(`${flaskUrl}/predict-disease`, formData, {
+      headers: {
+        ...formData.getHeaders(),
+      }
+    });
+
+    if (response.data && response.data.success) {
+      return {
+        prediction: response.data.disease,
+        confidence: response.data.confidence
+      };
+    } else {
+      throw new Error(response.data.message || "Flask server integration failed");
+    }
+  } catch (error) {
+    console.error("Flask Server Error:", error.message);
+    throw new Error(`AI Server Communication Error: ${error.message}`);
+  }
+};
+
 module.exports = {
   treatments,
   formatPredictionName,
-  generateTreatment
+  generateTreatment,
+  predictDiseaseFromFlask
 };
