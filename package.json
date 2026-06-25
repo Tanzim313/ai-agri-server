@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
     "dev": "nodemon server.js",
     "check": "node --check server.js && node --check src/app.js"
   },
@@ -17,13 +18,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^2.10.0",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.18.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
+    "compression": "^1.8.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "form-data": "^4.0.6",
+    "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.3.0",
     "multer": "^2.2.0",
@@ -34,6 +39,7 @@
     "node-tflite": "^0.0.2"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "nodemon": "^3.1.14"
   },
   "engines": {

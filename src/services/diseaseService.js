@@ -56,34 +56,48 @@ const generateTreatment = (prediction) => {
 };
 
 
-// flask-ai-server e image file diye prediction ana...
 const predictDiseaseFromFlask = async (file) => {
-  try {
-    const flaskUrl = process.env.FLASK_AI_URL || 'http://localhost:8000';
-    const formData = new FormData();
+  const candidateUrls = [
+    process.env.FLASK_AI_URL
+  ].filter(Boolean);
 
-    
-    //multer dia file asbe , tarpor fromdata te add kore flask e pathano
-    formData.append('image', file.buffer, { filename: file.originalname });
-
-    const response = await axios.post(`${flaskUrl}/predict-disease`, formData, {
-      headers: {
-        ...formData.getHeaders(),
-      }
-    });
-
-    if (response.data && response.data.success) {
-      return {
-        prediction: response.data.disease,
-        confidence: response.data.confidence
-      };
-    } else {
-      throw new Error(response.data.message || "Flask server integration failed");
-    }
-  } catch (error) {
-    console.error("Flask Server Error:", error.message);
-    throw new Error(`AI Server Communication Error: ${error.message}`);
+  if (candidateUrls.length === 0) {
+    throw new Error('FLASK_AI_URL is not configured. Start the Flask AI server and set FLASK_AI_URL');
   }
+
+  const formData = new FormData();
+  formData.append('image', file.buffer, { filename: file.originalname });
+
+  let lastError = null;
+
+  for (const flaskUrl of candidateUrls) {
+    try {
+      const response = await axios.post(`${flaskUrl}/predict-disease`, formData, {
+        headers: {
+          ...formData.getHeaders()
+        },
+        timeout: 45000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
+      });
+
+      if (response.data && response.data.success) {
+        return {
+          prediction: response.data.disease,
+          confidence: response.data.confidence
+        };
+      }
+
+      const upstreamError = response.data?.message || 'Unknown error from Flask AI service';
+      throw new Error(upstreamError);
+    } catch (error) {
+      lastError = error;
+      console.warn(`Flask AI request failed for ${flaskUrl}:`, error.message);
+    }
+  }
+
+  const upstreamMessage = lastError?.response?.data?.message || lastError?.message || 'Flask AI service unavailable';
+  throw new Error(`AI Server Communication Error: ${upstreamMessage}`);
 };
 
 module.exports = {

@@ -1,51 +1,74 @@
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { getGeminiConfig } = require("../config/gemini");
 
-const formatMessages = ({ message, userId }) => {
-  return [
-    { role: "system", content: getGeminiConfig().systemMessage },
-    { role: "user", content: message }
-  ];
-};
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const sendMessage = async ({ userId, message }) => {
+const sendMessage = async ({ message }) => {
   const config = getGeminiConfig();
 
-  if (!config.apiKey || !config.apiUrl) {
-    return "Gemini configuration not found. Please set GEMINI_API_KEY and GEMINI_API_URL in your environment.";
+  if (!config.apiKey) {
+    throw new Error("GEMINI_API_KEY is missing.");
   }
 
-  const payload = {
-    model: config.model,
-    messages: formatMessages({ message, userId })
-  };
+  const genAI = new GoogleGenerativeAI(config.apiKey);
 
-  const response = await fetch(config.apiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`
-    },
-    body: JSON.stringify(payload)
+  const model = genAI.getGenerativeModel({
+    model: config.model || "gemini-2.5-flash",
+    systemInstruction: config.systemMessage
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    const error = new Error(`Gemini API request failed: ${response.status} ${errorText}`);
-    error.statusCode = 502;
-    throw error;
+  const maxRetries = 5;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await model.generateContent(message);
+
+      const response = result.response;
+
+      if (!response) {
+        throw new Error("Empty response from Gemini.");
+      }
+
+      const text = response.text();
+
+      if (!text) {
+        throw new Error("Gemini returned an empty response.");
+      }
+
+      return text;
+    } catch (error) {
+      lastError = error;
+
+      const errorMessage = error?.message || "";
+
+      const isRetryable =
+        errorMessage.includes("503") ||
+        errorMessage.includes("Service Unavailable") ||
+        errorMessage.includes("high demand") ||
+        errorMessage.includes("overloaded") ||
+        errorMessage.includes("RESOURCE_EXHAUSTED") ||
+        errorMessage.includes("429");
+
+      if (!isRetryable || attempt === maxRetries) {
+        break;
+      }
+
+      const delay = Math.pow(2, attempt) * 1000;
+
+      console.log(
+        `Gemini request failed (Attempt ${attempt}/${maxRetries}). Retrying in ${delay}ms...`
+      );
+
+      await sleep(delay);
+    }
   }
 
-  const result = await response.json();
+  console.error("Gemini Error:", lastError);
 
-  if (result?.choices?.[0]?.message?.content) {
-    return result.choices[0].message.content;
-  }
-
-  if (result?.output?.text) {
-    return result.output.text;
-  }
-
-  return "The AI assistant could not generate a response.";
+  throw new Error(
+    "AI service is temporarily unavailable. Please try again in a few moments."
+  );
 };
 
 module.exports = {
