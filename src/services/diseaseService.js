@@ -78,7 +78,9 @@ const predictDiseaseFromFlask = async (file) => {
         },
         timeout: 45000,
         maxBodyLength: Infinity,
-        maxContentLength: Infinity
+        maxContentLength: Infinity,
+        // Don't throw on non-2xx; handle status ourselves so we can forward exact message
+        validateStatus: () => true
       });
 
       if (response.data && response.data.success) {
@@ -88,8 +90,11 @@ const predictDiseaseFromFlask = async (file) => {
         };
       }
 
-      const upstreamError = response.data?.message || 'Unknown error from Flask AI service';
-      throw new Error(upstreamError);
+      const upstreamMessage = response.data?.message || 'Unknown error from Flask AI service';
+      const upstreamStatus = response.status || 503;
+      const err = new Error(upstreamMessage);
+      err.upstreamStatus = upstreamStatus;
+      throw err;
     } catch (error) {
       lastError = error;
       console.warn(`Flask AI request failed for ${flaskUrl}:`, error.message);
@@ -97,7 +102,10 @@ const predictDiseaseFromFlask = async (file) => {
   }
 
   const upstreamMessage = lastError?.response?.data?.message || lastError?.message || 'Flask AI service unavailable';
-  throw new Error(`AI Server Communication Error: ${upstreamMessage}`);
+  const upstreamStatus = lastError?.upstreamStatus || lastError?.response?.status || 503;
+  const finalErr = new Error(upstreamMessage);
+  finalErr.upstreamStatus = upstreamStatus;
+  throw finalErr;
 };
 
 module.exports = {

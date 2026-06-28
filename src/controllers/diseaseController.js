@@ -55,13 +55,14 @@ const predict = async (req, res, next) => {
       return errorResponse(res, 500, "Cloudinary did not return an image URL");
     }
 
-    // Call the AI model service (Flask). If it fails, return a 503 with details.
+    // Call the AI model service (Flask). If it fails, return the upstream status with details.
     let predictionResult;
     try {
       predictionResult = await predictDiseaseFromFlask(req.file);
     } catch (err) {
       const message = err && err.message ? err.message : 'AI prediction service failed';
-      return errorResponse(res, 503, `AI service error: ${message}`);
+      const statusCode = err && err.upstreamStatus ? err.upstreamStatus : 503;
+      return errorResponse(res, statusCode, message);
     }
 
     const treatment = generateTreatment(predictionResult.prediction);

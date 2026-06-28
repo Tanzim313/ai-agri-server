@@ -17,9 +17,9 @@ const router = express.Router();
 
 router.get("/products", listProducts);
 router.get("/products/:id", getProduct);
-router.post("/products", protect, authorize("admin"), upload.single("image"), createProduct);
-router.put("/products/:id", protect, authorize("admin"), upload.single("image"), updateProduct);
-router.delete("/products/:id", protect, authorize("admin"), deleteProduct);
+router.post("/products", protect, authorize("admin", "farmer"), upload.single("image"), createProduct);
+router.put("/products/:id", protect, authorize("admin", "farmer"), upload.single("image"), updateProduct);
+router.delete("/products/:id", protect, authorize("admin", "farmer"), deleteProduct);
 router.post("/orders", protect, createOrder);
 router.get("/orders", protect, orderHistory);
 router.get("/orders/:id", protect, getOrderById);
